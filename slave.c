@@ -10,6 +10,8 @@
 #include <sys/sem.h>
 #include "config.h"
 
+
+//Functions
 void lock(int);
 void use_resource(int);
 void unlock(int);
@@ -26,6 +28,8 @@ struct shmseg *shmp;
 
 
 int main (int argc, char *argv[]) {
+	
+	//Variables
 	int procNum = atoi(argv[1]) + 1;
 	int shmid = atoi(argv[2]);
 	int semid = atoi(argv[3]);
@@ -47,6 +51,7 @@ int main (int argc, char *argv[]) {
 	char logfile[10] = "logfile.";
 	strcat(logfile, intToString);
 	
+	//critical sections with semaphores
 	int i = 0;
 	for (i = 0; i < 5; i++) {
 		struct sembuf sb = {0, -1, 0};
