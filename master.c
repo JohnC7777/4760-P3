@@ -20,6 +20,8 @@
 #include "config.h"
 
 pid_t children[NUM_OF_PROCS];
+int semid;
+int semCreated;
 int maxTime;
 int slaves;
 int shmAllocated;
@@ -38,6 +40,12 @@ struct shmseg {
 	int choosing[NUM_OF_PROCS];
 };
 
+union semun {
+	int val;
+	struct semid_ds *buf;
+	ushort array[1];
+} sem_attr;
+
 
 int isNum(char*);
 char *getPerror();
@@ -46,6 +54,7 @@ void endProgram(int, int);
 void childTermHandler(int);
 void ctrlCHandler(int);
 void logTerm(char*);
+void removeSemaphores();
 static void timeoutHandler(int);
 static int interruptsetup(void);
 static int timersetup(void);
@@ -57,6 +66,7 @@ int main (int argc, char *argv[]) {
 	signal(SIGINT, ctrlCHandler);
 	signal(SIGCHLD, childTermHandler);
 	programName = argv[0];
+	semCreated = 0;
 	maxTime = 100;
 	slaves = 0;
 	Processes = 0;
@@ -110,6 +120,16 @@ while((opt = getopt(argc, argv, "hn:t:")) != -1){
                 shmp->choosing[i] = 0;
         }
  	
+	FILE *fp = fopen("ftokFile", "ab+"); /* creates file if it doesn't exist */
+	fclose(fp);
+	
+	key_t key;
+	key = ftok("ftokFile", 'E');
+	semid = semget(key, 1, 0666 | IPC_CREAT);
+	sem_attr.val = 1;
+	semctl(semid, 0, SETVAL, sem_attr);
+	semCreated = 1;
+	
 	pid_t childpid = 0;
 	for (i = 0; i < slaves; i++) {
 		if ((childpid = fork()) == -1) {
@@ -121,12 +141,13 @@ while((opt = getopt(argc, argv, "hn:t:")) != -1){
 			sprintf(strProcNum, "%d", i);
 			char strShmid[100];
 			sprintf(strShmid, "%d", shmid);
-			char *args[] = {"./slave", strProcNum, strShmid, (char*)0};
+			char strSemid[100];
+			sprintf(strSemid, "%d", semid);
+			char *args[] = {"./slave", strProcNum, strShmid, strSemid, (char*)0};
 			execvp("./slave", args);
 			
 			char *output = getPerror();
 			perror(output);
-			printf("TEST from fork 2");
 			return 1;
 		} else {
 			Processes++;
@@ -233,7 +254,11 @@ int deallocateSharedMemory() {
 		perror(output);
 		exit(1);
 	}
-
+	
+	if (semCreated) {
+		removeSemaphores();
+	}
+	
 	return 0;
 }
 
@@ -249,4 +274,11 @@ void endProgram (int s, int killChild) {
 	}
 	if (shmAllocated) deallocateSharedMemory();
 	exit(0);
+}
+
+void removeSemaphores() {
+	if (semctl(semid, 0, IPC_RMID, sem_attr) == -1) {
+		char *output = getPerror();
+		perror(output);
+	}
 }
