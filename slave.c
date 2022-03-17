@@ -5,6 +5,9 @@
 #include <string.h>
 #include <time.h>
 #include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 #include "config.h"
 
 void lock(int);
@@ -25,6 +28,7 @@ struct shmseg *shmp;
 int main (int argc, char *argv[]) {
 	int procNum = atoi(argv[1]) + 1;
 	int shmid = atoi(argv[2]);
+	int semid = atoi(argv[3]);
 	
 	int randNumsLower = 1;
 	int randNumsUpper = 5;
@@ -44,20 +48,28 @@ int main (int argc, char *argv[]) {
 	strcat(logfile, intToString);
 	
 	
-	                //Bakery's algorithm
-	int i = 0;
 	for (i = 0; i < 5; i++) {
+		struct sembuf sb = {0, -1, 0};
 		logMessage("Request to enter critical section. process #: ", procNum, logfile);
-		lock(procNum - 1); 
+		if (semop(semid, &sb, 1) == -1) { /* Lock */
+			char *output = getPerror(argv[0]);
+			perror(output);
+			exit(1);
+		}
 		logMessage("Critical section entered. process #: ", procNum, logfile);
-		randNums = (rand() % (randNumsUpper - randNumsLower + 1)) + randNumsLower; 
+		randNums = (rand() % (randNumsUpper - randNumsLower + 1)) + randNumsLower;
 		sleep(randNums);
 		use_resource(procNum - 1);
 		logMessage("Data entry in 'cstest' file. process #: ", procNum, logfile);
-		randNums = (rand() % (randNumsUpper - randNumsLower + 1)) + randNumsLower;
+		randNums = (rand() % (randNumsUpper - randNumsLower + 1)) + randNumsLower; 
 		sleep(randNums);
 		logMessage("Critical section exited. process #: ", procNum, logfile);
-		unlock(procNum - 1);
+		sb.sem_op = 1;
+		if (semop(semid, &sb, 1) == -1) {
+			char *output = getPerror(argv[0]);
+			perror(output);
+			exit(1);
+		}
 	}
 	
 	
