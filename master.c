@@ -46,7 +46,7 @@ union semun {
 	ushort array[1];
 } sem_attr;
 
-
+//Declaring functions
 int isNum(char*);
 char *getPerror();
 int deallocateSharedMemory();
@@ -63,6 +63,8 @@ struct shmseg *shmp;
 
 
 int main (int argc, char *argv[]) {
+	
+	//Variables
 	signal(SIGINT, ctrlCHandler);
 	signal(SIGCHLD, childTermHandler);
 	programName = argv[0];
@@ -85,7 +87,7 @@ while((opt = getopt(argc, argv, "hn:t:")) != -1){
 	return 0;
 	break;
 
-	case'n':
+	case'n': //Number of processes
 	slaves = atoi(optarg);
 	if(slaves>NUM_OF_PROCS){
 		printf("Slaves cannot be more than 20 \n");
@@ -94,10 +96,11 @@ while((opt = getopt(argc, argv, "hn:t:")) != -1){
 	}
 	break;
 		      
-	case't':
+	case't': //Max time
 	maxTime = atoi(optarg);
       }
    }
+	//Shared memory
 	shmAllocated = 1;
 	
 	shmid = shmget(SHM_KEY, sizeof(struct shmseg), SHM_PERM|IPC_CREAT);
@@ -120,9 +123,10 @@ while((opt = getopt(argc, argv, "hn:t:")) != -1){
                 shmp->choosing[i] = 0;
         }
  	
-	FILE *fp = fopen("ftokFile", "ab+"); /* creates file if it doesn't exist */
+	FILE *fp = fopen("ftokFile", "ab+");
 	fclose(fp);
 	
+	//Create semaphore
 	key_t key;
 	key = ftok("ftokFile", 'E');
 	semid = semget(key, 1, 0666 | IPC_CREAT);
@@ -132,7 +136,7 @@ while((opt = getopt(argc, argv, "hn:t:")) != -1){
 	
 	pid_t childpid = 0;
 	for (i = 0; i < slaves; i++) {
-		if ((childpid = fork()) == -1) {
+		if ((childpid = fork()) == -1) { //fork processes
 			char *output = getPerror();
 			perror(output);
 			return 1;
@@ -144,7 +148,7 @@ while((opt = getopt(argc, argv, "hn:t:")) != -1){
 			char strSemid[100];
 			sprintf(strSemid, "%d", semid);
 			char *args[] = {"./slave", strProcNum, strShmid, strSemid, (char*)0};
-			execvp("./slave", args);
+			execvp("./slave", args); //execute slave
 			
 			char *output = getPerror();
 			perror(output);
@@ -184,6 +188,8 @@ char *getPerror () {
 }
 
 
+
+//***FUNCTIONS***
 
 static int timersetup(void) {
 	struct itimerval value;
