@@ -14,6 +14,6 @@
 
 #  parameters: HELP -h MAX SECONDS -t NUMBER OF PROCESSES -n
 
-# example: ./chain -t 80 -n 5
+# example: ./master -t 80 -n 5
 
 # type "make clean" to get rid of your object and executable files
