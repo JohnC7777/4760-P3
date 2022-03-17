@@ -47,7 +47,7 @@ int main (int argc, char *argv[]) {
 	char logfile[10] = "logfile.";
 	strcat(logfile, intToString);
 	
-	
+	int i = 0;
 	for (i = 0; i < 5; i++) {
 		struct sembuf sb = {0, -1, 0};
 		logMessage("Request to enter critical section. process #: ", procNum, logfile);
